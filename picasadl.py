@@ -8,6 +8,12 @@ import gdata.photos.service
 import gdata.media
 import gdata.geo
 
+def show_progress(count, block_size, total_size):
+	completed = (float(count) * float(block_size)) / float(total_size)
+	if completed > 1.0:
+		completed = 1.0
+	print "%0.1f percent complete" % (completed * 100.0)
+
 class Photo:
 	def __init__(self, photo, album, gd_client=None):
 		self.photo = photo
@@ -28,7 +34,7 @@ class Photo:
 		try:
 			if not os.path.isdir(os.path.dirname(destination)):
 				os.makedirs(os.path.dirname(destination))
-			urllib.urlretrieve(self.url, destination)
+			urllib.urlretrieve(self.url, destination, show_progress)
 		except Exception as e:
 			print e
 			print "unable to download %s" % self
@@ -97,8 +103,7 @@ def main():
 	downloader = PicasaDownloader(settings.email, settings.password)
 
 	for album in downloader.get_albums():
-		for photo in album.photos():
-			photo.download('photos')
+		album.download('photos')
 
 if __name__ == "__main__":
 	main()
