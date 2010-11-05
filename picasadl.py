@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # downloads picasa web albums
+import urllib
+import os
+import os.path
+
 import gdata.photos.service
 import gdata.media
 import gdata.geo
@@ -11,11 +15,23 @@ class Photo:
 		
 		self.gd_client = gd_client
 
+		self.url = self.photo.content.src
 		self.title = self.photo.title.text
 		self.gphoto_id = self.photo.gphoto_id.text
 	
 	def __str__(self):
 		return "%s" % self.title
+
+	def download(self, destination=None):
+		destination = os.getcwd() + '/' + destination + '/%s/%s' % (self.album.title, self.title)
+
+		try:
+			if not os.path.isdir(os.path.dirname(destination)):
+				os.makedirs(os.path.dirname(destination))
+			urllib.urlretrieve(self.url, destination)
+		except Exception as e:
+			print e
+			print "unable to download %s" % self
 
 class Album:
 	def __init__(self, album, gd_client=None):
@@ -34,15 +50,16 @@ class Album:
 
 		return "%s (contains %i photo%s)" % (self.title, self.numphotos, ending)
 
-	def download(self, location=None):
+	def download(self, destination=None):
 		if self.gd_client is None:
 			return False
-		return True
+		for photo in self.photos():
+			photo.download(destination)
 
 	def photos(self):
 		if self.gd_client is None:
 			return
-		photos = gd_client.GetFeed(
+		photos = self.gd_client.GetFeed(
 				'/data/feed/api/user/default/albumid/%s?kind=photo' % 
 				(self.gphoto_id))
 		for photo in photos.entry:
@@ -67,21 +84,21 @@ class PicasaDownloader:
 		for album in albums.entry:
 			yield Album(album, self.gd_client)
 
-	def download_albums(self, user=None, location=''):
+	def download_albums(self, user=None, destination=''):
 		if user is None:
 			user = self.email
-		albums = self.get_albums(user)
-		for album in albums:
-			album.download(location)
+		for album in self.get_albums(user):
+			album.download(destination)
 
 def main():
 	import settings
+	from pprint import pprint
 
 	downloader = PicasaDownloader(settings.email, settings.password)
 
 	for album in downloader.get_albums():
-		if album.download():
-			print album
+		for photo in album.photos():
+			photo.download('photos')
 
 if __name__ == "__main__":
 	main()
