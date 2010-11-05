@@ -5,8 +5,9 @@ import gdata.media
 import gdata.geo
 
 class Photo:
-	def __init__(self, photo, gd_client=None):
+	def __init__(self, photo, album, gd_client=None):
 		self.photo = photo
+		self.album = album
 		
 		self.gd_client = gd_client
 
@@ -45,7 +46,7 @@ class Album:
 				'/data/feed/api/user/default/albumid/%s?kind=photo' % 
 				(self.gphoto_id))
 		for photo in photos.entry:
-			 yield Photo(photo, self.gd_client)
+			 yield Photo(photo, self, self.gd_client)
 
 class PicasaDownloader:
 	def __init__(self, email, password, source='picasadl'):
