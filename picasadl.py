@@ -4,12 +4,23 @@ import gdata.photos.service
 import gdata.media
 import gdata.geo
 
-class Album:
-	def __init__(self, gd_client=None, title="Untitled", numphotos=0, picasa_id=None):
+class Photo:
+	def __init__(self, gd_client=None, user=None, title="Untitled", gphoto_id=None):
 		self.gd_client = gd_client
+		self.user = user
+		self.title = title
+		self.gphoto_id = gphoto_id
+	
+	def __str__(self):
+		return "%s" % self.title
+
+class Album:
+	def __init__(self, gd_client=None, user=None, title="Untitled", numphotos=0, gphoto_id=None):
+		self.gd_client = gd_client
+		self.user = user
 		self.title = title
 		self.numphotos = int(numphotos)
-		self.picasa_id = picasa_id
+		self.gphoto_id = gphoto_id
 	
 	def __str__(self):
 		ending = ''
@@ -19,10 +30,18 @@ class Album:
 		return "%s (contains %i photo%s)" % (self.title, self.numphotos, ending)
 
 	def download(self, location=None):
-		if self.gd_client is not None:
-			return True
-		else:
+		if self.gd_client is None:
 			return False
+		return True
+
+	def photos(self):
+		if self.gd_client is None:
+			return
+		photos = gd_client.GetFeed(
+				'/data/feed/api/user/%s/albumid/%s?kind=photo' % 
+				(self.user, self.gphoto_id))
+		for photo in photos.entry:
+			 yield Photo(self.gd_client, self.user, photo.title.text, photo.gphoto_id.text)
 
 class PicasaDownloader:
 	def __init__(self, email, password, source='picasadl'):
@@ -40,10 +59,9 @@ class PicasaDownloader:
 		if user is None:
 			user = self.email
 		albums = self.gd_client.GetUserFeed(user=user)
-		results = []
 		for album in albums.entry:
-			results.append(Album(self.gd_client, album.title.text, album.numphotos.text, album.gphoto_id.text))
-		return results
+			yield Album(self.gd_client, user, album.title.text, 
+				album.numphotos.text, album.gphoto_id.text)
 
 	def download_albums(self, user=None, location=''):
 		if user is None:
